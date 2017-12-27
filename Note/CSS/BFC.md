@@ -442,11 +442,3 @@ BFC就是页面上的一个隔离的独立容器，容器里面的子元素不�
 当BFC外部存在浮动时，它不应该影响BFC内部Box的布局，BFC会通过变窄，而不与浮动有重叠。
 同样的，当BFC内部有浮动时，为了不影响外部元素的布局，BFC计算高度时会包括浮动的高度。
 避免margin重叠也是这样的一个道理。
-　　
-### 5. 延申阅读
-
-+ [CSS清浮动处理（Clear与BFC）](http://www.cnblogs.com/dolphinX/p/3508869.html)
-
-+ [A new micro clearfix hack](http://nicolasgallagher.com/micro-clearfix-hack/)
-
-+ [清除浮动和BFC](https://github.com/zuopf769/notebook/blob/master/fe/%E6%B8%85%E9%99%A4%E6%B5%AE%E5%8A%A8%E5%92%8CBFC/README.md)
