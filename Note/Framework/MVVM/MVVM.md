@@ -143,7 +143,107 @@ data.name = 'wufan'
 
 ```
 
+`Object.defineProperty`方法存在一些缺点
+
+1. 只能监听属性,所以需要对整个对象的所有属性进行循环监听
+2. 没有办法原生监听`数组`
+
+而`Proxy`除了具有`Object.defineProperty`的优势,还没有以上两个缺点
+
 ### Proxy
+
+`Proxy`在ES2015中被正式发布,可以在目标对象上架设一层'拦截',所以属于`元编程`
+
+#### Proxy可以直接监听对象而非属性
+
+```js
+
+const input = document.getElementById('input');
+const p = document.getElementById('p');
+const obj = {};
+
+const newObj = new Proxy(obj,{
+    get(target,key,receiver){
+        console.log(`getting ${key}`)
+        return Reflect.get(target,key,receiver)
+    },
+    set(target,key,value,receiver){
+        console.log('setting')
+        if(key === 'text'){
+            input.value = value;
+            p.innerHTML = value;
+        }
+        return Reflect.set(target,key,value,receiver)
+    }
+})
+
+input.addEventListener('keyup',e=>{
+    newObj.text = e.target.value
+})
+
+```
+
+#### Proxy可以直接监听数组的变化
+
+```js
+
+const list = document.getElementById('list');
+const btn = document.getElementById('btn');
+
+// 渲染列表
+const Render = {
+  // 初始化
+  init(arr) {
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < arr.length; i++) {
+      const li = document.createElement('li');
+      li.textContent = arr[i];
+      fragment.appendChild(li);
+    }
+    list.appendChild(fragment);
+  },
+  // 我们只考虑了增加的情况,仅作为示例
+  change(val) {
+    const li = document.createElement('li');
+    li.textContent = val;
+    list.appendChild(li);
+  },
+};
+
+// 初始数组
+const arr = [1, 2, 3, 4];
+
+// 监听数组
+const newArr = new Proxy(arr, {
+  get(target, key, receiver) {
+    console.log(key);
+    return Reflect.get(target, key, receiver);
+  },
+  set(target, key, value, receiver) {
+    console.log(target, key, value, receiver);
+    if (key !== 'length') {
+      Render.change(value);
+    }
+    return Reflect.set(target, key, value, receiver);
+  },
+});
+
+// 初始化
+window.onload = function() {
+    Render.init(arr);
+}
+
+// push数字
+btn.addEventListener('click', function() {
+  newArr.push(6);
+});
+
+```
+
+#### proxy的其他优势
+
+1. Proxy有13中拦截方法,不限于apply、ownKeys、has等
+2. Proxy返回的是一个新对象
 
 ## VirtualDOM
 
