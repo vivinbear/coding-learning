@@ -48,6 +48,7 @@ EventEmitter.prototype.emit = function(type,...args){
     let handler;
     // 从存储事件的map(this._event)中获取对应事件的回调函数
     handler = this._events.get(type);
+    // 当有参数时,用apply,无参数时,用call 性能更佳
     if(args.length > 0){
         handler.apply(this,args)
     }else{
@@ -70,3 +71,116 @@ EventEmitter.prototype.addListener = function(type,fn){
 
 2.1 监听/触发器升级
 
+目前我们的`addListener`目前实现了监听功能,但是只能绑定一个监听者,因此我们需要改进一下,可以让多个监听者同时监听.
+
+```js
+
+EventEmitter.prototype.emit = function(type,...args){
+    let handler;
+    // 获取存储的监听
+    handler = this._event.get(type)
+    // 如果是数组,则表明有多个监听者,则遍历数组,触发每一个回调函数
+    if(Array.isArray(handler)){
+        for(let i = 0;i<handler.length;i++){
+            if(args.length >0){
+                handler[i].apply(this,args);
+            }else{
+                handler[i].call(this);
+            }
+        }
+    }else{
+        // 非数组,则表明只有一个监听者,直接触发其回调即可
+        if(args.length > 0){
+            handler.apply(this,args);
+        }else{
+            handler.call(this)
+        }
+    }
+    return true
+}
+
+EventEmitter.prototype.addListener = function(type,fn){
+    // 获得存储的监听
+    let handler = this._event.get(type)
+    // 如果没有监听,则设置监听
+    if(!handler){
+        this._event.set(type,fn);
+    }else if(handler && typeof handler === 'function'){
+        // 如果已有监听,且只有一个,则将监听改为数组
+        this._events.set(type,[handler,fn]);
+    }else{
+        // 如果已有监听,且大于两个,则往监听数组内push新的监听回调
+        handler.push(fn);
+    }
+}
+
+```
+
+至此,已经完成了多个监听了
+
+```js
+
+let emitter = new EventEmitter()
+
+emitter.addListener('listen',data=>{
+    console.log(`listen one ${data}`)
+})
+
+emitter.addListener('listen',data=>{
+    console.log(`listen two ${data}`)
+})
+
+emitter.addListener('listen',data=>{
+    console.log(`listen three ${data}`)
+})
+
+emitter.emit('listen','success')
+// listen one success
+// listen two success
+// listen three success
+
+```
+
+2.2 移除监听
+
+在可以添加多个监听之后,我们尝试增加移除监听的`removeListener`函数来移除监听.
+
+```js
+
+EventEmitter.prototype.removeListener = function(type,fn){
+    // 获取事件对应的监听函数清单
+    let handler = this._events.get(type)
+    // 如果是函数,说明被监听了一次,那么直接移除就可以了
+    if(handler && typeof handler === 'function'){
+        this._events.delete(type);
+    }else{
+        // 如果不是,则说明监听了多次
+        let position;
+        for(let i = 0;i<handler.length;i++){
+            // 如果监听函数一致,则赋值其下标,用于移除
+            if(handler[i]===fn){
+                position = i;
+            }else{
+                position = -1;
+            }
+        }
+        // position不为-1 则移除
+        if(position !== -1){
+            handler.splice(position,1);
+            // 如果清除后,只剩一个函数,那么取消数组,以函数形式保存
+            if(handler.length === 1){
+                this._events.set(type,handler[0])
+            }
+        }else{
+            return this
+        }
+    }
+}
+
+```
+
+#### 目前的问题
+
+1. 匿名函数无法移除监听
+2. 没有`removeAlllisteners`等方法
+3. 没有对传入的参数进行校验
